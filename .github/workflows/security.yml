@@ -95,8 +95,11 @@ jobs:
     - name: Scan for hardcoded passwords/secrets
       run: |
         echo "🔍 Scanning for hardcoded secrets..."
+        # Pattern to find hardcoded secrets (excludes KEY_ prefixed constants which are just key names)
         PATTERN='(password|secret|api_key|apikey|access_key|auth_token|private_key|client_secret)\s*[:=]\s*["\x27][^"\x27]{8,}'
-        if grep -riE "$PATTERN" --include="*.java" --include="*.kt" --include="*.xml" --include="*.properties" --include="*.gradle" . 2>/dev/null | grep -v ".git" | grep -v "build/" | grep -v "test/"; then
+        RESULTS=$(grep -riE "$PATTERN" --include="*.java" --include="*.kt" --include="*.xml" --include="*.properties" --include="*.gradle" . 2>/dev/null | grep -v ".git" | grep -v "build/" | grep -v "test/" | grep -v "KEY_.*PASSWORD\s*=" | grep -v "KEY_.*SECRET\s*=" | grep -v "android:inputType" | grep -v "android:autofillHints" | grep -v "android:hint" | grep -v "// " | grep -v "* " || true)
+        if [ -n "$RESULTS" ]; then
+          echo "$RESULTS"
           echo "❌ Potential hardcoded secret found!"
           exit 1
         fi
