@@ -89,4 +89,10 @@
     <color name="material_you_neutral_variant50">#70777C</color>
 
     <color name="splash_screen_background">@color/material_you_neutral_50</color>
+
+    <!-- Swipe action colors -->
+    <color name="swipe_save">#FF9800</color>
+    <color name="swipe_vote">#4CAF50</color>
+    <color name="swipe_share">#03A9F4</color>
+    <color name="swipe_mark_read">#9E9E9E</color>
 </resources>
