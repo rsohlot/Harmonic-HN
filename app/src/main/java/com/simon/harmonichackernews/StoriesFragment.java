@@ -28,6 +28,7 @@ import androidx.core.view.OnApplyWindowInsetsListener;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -37,6 +38,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.simon.harmonichackernews.adapters.StoryRecyclerViewAdapter;
+import com.simon.harmonichackernews.adapters.StorySwipeTouchHelperCallback;
 import com.simon.harmonichackernews.data.Bookmark;
 import com.simon.harmonichackernews.data.History;
 import com.simon.harmonichackernews.data.Story;
@@ -48,6 +50,8 @@ import com.simon.harmonichackernews.utils.AccountUtils;
 import com.simon.harmonichackernews.utils.FontUtils;
 import com.simon.harmonichackernews.utils.HistoriesUtils;
 import com.simon.harmonichackernews.utils.SettingsUtils;
+import com.simon.harmonichackernews.utils.ShareUtils;
+import com.simon.harmonichackernews.utils.SwipePreferences;
 import com.simon.harmonichackernews.utils.StoryUpdate;
 import com.simon.harmonichackernews.utils.Utils;
 import com.simon.harmonichackernews.utils.UtilsKt;
@@ -93,6 +97,9 @@ public class StoriesFragment extends Fragment {
 
     private int topInset = 0;
 
+    private ItemTouchHelper swipeItemTouchHelper;
+    private StorySwipeTouchHelperCallback swipeTouchHelperCallback;
+
     public StoriesFragment() {
         super(R.layout.fragment_stories);
     }
@@ -122,6 +129,7 @@ public class StoriesFragment extends Fragment {
         stories = new ArrayList<>();
         setupAdapter();
         recyclerView.setAdapter(adapter);
+        setupSwipeHelper();
 
         ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
             @NonNull
@@ -389,6 +397,114 @@ public class StoriesFragment extends Fragment {
         });
     }
 
+    /**
+     * Sets up the swipe gesture helper for story items.
+     * Handles Save, Vote, Share, and Mark Read actions on swipe.
+     */
+    private void setupSwipeHelper() {
+        Context ctx = getContext();
+        if (ctx == null) return;
+
+        swipeTouchHelperCallback = new StorySwipeTouchHelperCallback(ctx) {
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                if (!(viewHolder instanceof StoryRecyclerViewAdapter.StoryViewHolder)) {
+                    return;
+                }
+
+                int position = viewHolder.getAbsoluteAdapterPosition();
+                if (position == RecyclerView.NO_POSITION || position >= stories.size()) {
+                    return;
+                }
+
+                Story story = stories.get(position);
+                if (story == null || !story.loaded) {
+                    return;
+                }
+
+                SwipePreferences.SwipeAction action = direction == ItemTouchHelper.LEFT
+                        ? getLeftSwipeAction()
+                        : getRightSwipeAction();
+
+                handleSwipeAction(action, story, position);
+
+                // Reset the item view after swipe
+                adapter.notifyItemChanged(position);
+            }
+        };
+
+        swipeItemTouchHelper = new ItemTouchHelper(swipeTouchHelperCallback);
+        swipeItemTouchHelper.attachToRecyclerView(recyclerView);
+    }
+
+    /**
+     * Handles the swipe action based on user preference.
+     */
+    private void handleSwipeAction(SwipePreferences.SwipeAction action, Story story, int position) {
+        Context ctx = getContext();
+        if (ctx == null) return;
+
+        switch (action) {
+            case Save:
+                toggleBookmark(ctx, story, position);
+                break;
+            case Vote:
+                UserActions.upvote(ctx, story.id, getParentFragmentManager());
+                break;
+            case Share:
+                shareStory(ctx, story);
+                break;
+            case MarkRead:
+                toggleReadStatus(story, position);
+                break;
+            case None:
+            default:
+                break;
+        }
+    }
+
+    private void toggleBookmark(Context ctx, Story story, int position) {
+        boolean isBookmarked = Utils.isBookmarked(ctx, story.id);
+        if (isBookmarked) {
+            Utils.removeBookmark(ctx, story.id);
+            Toast.makeText(ctx, "Removed from bookmarks", Toast.LENGTH_SHORT).show();
+            // If viewing bookmarks, remove from list
+            if (adapter.type == SettingsUtils.getBookmarksIndex(ctx.getResources())) {
+                stories.remove(story);
+                adapter.notifyItemRemoved(position);
+                return;
+            }
+        } else {
+            Utils.addBookmark(ctx, story.id);
+            Toast.makeText(ctx, "Added to bookmarks", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void shareStory(Context ctx, Story story) {
+        Intent shareIntent;
+        if (story.url != null && !story.url.isEmpty()) {
+            shareIntent = ShareUtils.getShareIntentWithTitle(story.title, story.url);
+        } else {
+            shareIntent = ShareUtils.getShareIntentWithTitle(story.title, story.id);
+        }
+        ctx.startActivity(shareIntent);
+    }
+
+    private void toggleReadStatus(Story story, int position) {
+        Context ctx = getContext();
+        if (ctx == null) return;
+
+        if (story.clicked) {
+            story.clicked = false;
+            HistoriesUtils.INSTANCE.removeHistoryById(ctx, story.id);
+            Toast.makeText(ctx, "Marked as unread", Toast.LENGTH_SHORT).show();
+        } else {
+            story.clicked = true;
+            HistoriesUtils.INSTANCE.addHistory(ctx, story.id);
+            Toast.makeText(ctx, "Marked as read", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -400,6 +516,11 @@ public class StoriesFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        // Refresh swipe preferences in case user changed them in settings
+        if (swipeTouchHelperCallback != null && getContext() != null) {
+            swipeTouchHelperCallback.refreshSwipePreferences(getContext());
+        }
 
         filterWords = Utils.getFilterWords(getContext());
         filterDomains = Utils.getFilterDomains(getContext());

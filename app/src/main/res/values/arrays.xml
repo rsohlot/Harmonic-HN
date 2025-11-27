@@ -139,4 +139,20 @@
         <item>all</item>
     </string-array>
 
+    <string-array name="swipe_action_entries">
+        <item>None</item>
+        <item>Save / Unsave</item>
+        <item>Upvote</item>
+        <item>Share</item>
+        <item>Mark as Read</item>
+    </string-array>
+
+    <string-array name="swipe_action_values">
+        <item>None</item>
+        <item>Save</item>
+        <item>Vote</item>
+        <item>Share</item>
+        <item>MarkRead</item>
+    </string-array>
+
 </resources>

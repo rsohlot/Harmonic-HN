@@ -168,6 +168,32 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        app:title="Swipe Gestures"
+        android:layout="@layout/preference_category">
+
+        <ListPreference
+            app:singleLineTitle="false"
+            app:icon="@drawable/ic_action_swipe"
+            app:title="Swipe left action"
+            app:key="pref_swipe_left_action"
+            app:useSimpleSummaryProvider="true"
+            app:entries="@array/swipe_action_entries"
+            app:defaultValue="Save"
+            app:entryValues="@array/swipe_action_values" />
+
+        <ListPreference
+            app:singleLineTitle="false"
+            app:icon="@drawable/ic_action_swipe"
+            app:title="Swipe right action"
+            app:key="pref_swipe_right_action"
+            app:useSimpleSummaryProvider="true"
+            app:entries="@array/swipe_action_entries"
+            app:defaultValue="Vote"
+            app:entryValues="@array/swipe_action_values" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         app:title="WebView"
         android:layout="@layout/preference_category">
 

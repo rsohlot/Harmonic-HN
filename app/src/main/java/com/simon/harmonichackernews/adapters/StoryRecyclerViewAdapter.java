@@ -251,6 +251,10 @@ public class StoryRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.
                 storyViewHolder.commentsView.setVisibility(compactView ? View.GONE : View.VISIBLE);
                 storyViewHolder.metaFavicon.setVisibility(thumbnails ? View.VISIBLE : View.GONE);
 
+                // Show bookmark icon if story is bookmarked
+                boolean isBookmarked = Utils.isBookmarked(ctx, storyViewHolder.story.id);
+                storyViewHolder.bookmarkIcon.setVisibility(isBookmarked ? View.VISIBLE : View.GONE);
+
                 if (storyViewHolder.story.loadingFailed) {
                     storyViewHolder.titleView.setText("Loading failed, click to retry");
                     storyViewHolder.metaContainer.setVisibility(View.GONE);
@@ -390,6 +394,7 @@ public class StoryRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.
         public final LinearLayout metaContainer;
         public final ImageView metaFavicon;
         public final TextView indexTextView;
+        public final ImageView bookmarkIcon;
 
         private int touchX, touchY;
 
@@ -410,6 +415,7 @@ public class StoryRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.
             metaShimmer = view.findViewById(R.id.story_title_shimmer_meta);
             metaFavicon = view.findViewById(R.id.story_meta_favicon);
             indexTextView = view.findViewById(R.id.story_index);
+            bookmarkIcon = view.findViewById(R.id.story_bookmark_icon);
 
             linkLayoutView.setOnClickListener(v -> linkClickListener.onItemClick(getAbsoluteAdapterPosition()));
             commentLayoutView.setOnClickListener(v -> commentClickListener.onItemClick(getAbsoluteAdapterPosition()));

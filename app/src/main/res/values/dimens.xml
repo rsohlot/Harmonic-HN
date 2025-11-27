@@ -14,4 +14,8 @@
     <integer name="stories_pane_weight">4</integer>
 
     <bool name="is_tablet">false</bool>
+
+    <!-- Swipe gesture dimensions -->
+    <dimen name="swipe_text_size">14sp</dimen>
+    <dimen name="swipe_text_padding">16dp</dimen>
 </resources>
